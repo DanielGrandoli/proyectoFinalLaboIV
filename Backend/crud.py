@@ -23,8 +23,10 @@ def create_user(db: Session, familiar:UserData):
  
     """
     
+#Mesas
+    
 def get_mesas(db: Session):
-    return db.query(Mesa).all()    
+    return db.query(Mesa).all()    #lista de mesas
     
     
 def crear_mesa(db:Session,mesa:MesaData):
@@ -42,37 +44,40 @@ def modificar_mesa(db:Session,idMesa:int,mesa:MesaData):
         buscado.fecha=mesa.fecha
         db.commit()
         db.refresh(buscado)
-        return buscado
-    else:
-        return "Mesa no encontrada"        #modificar mesa
-
+    return buscado                              #consultar si se puede modificar si tiene alumnos inscriptos
+    
 
 def eliminar_mesa(db:Session,idMesa:int):
     buscado=db.query(Mesa).filter(Mesa.idMesa==idMesa).first()
     if buscado:
-        db.delete(buscado)
-        db.commit()
-        return None
-    else:
-        return "Mesa no encontrada"            #elimina mesa
+        if not buscado.alumno.all():
+            db.delete(buscado)
+            db.commit()
+    return None
+  
 
+
+
+#Alumnos
+
+def get_alumnos(db:Session):
+    return db.query(Alumno).all()   #lista de alumnos
 
 def crear_alumno(db:Session,alumno:AlumnoData):
-    nuevo_alumno=Alumno(nombre=alumno.nombre,apellido=alumno.apellido,dni=alumno.dni,idMesa=alumno.idMesa)
+    nuevo_alumno=Alumno(nombre=alumno.nombre,apellido=alumno.apellido,dni=alumno.dni,idMesa=None)
     db.add(nuevo_alumno)
     db.commit()
     db.flush(nuevo_alumno)
     return nuevo_alumno                        #Alta alumno
 
-def agregarAlumnoMesa(db:Session,dni:int,alumno:AlumnoData):
+def agregarAlumnoMesa(db:Session,dni:int,idMesa:int):
     buscado = db.query(Alumno).filter(Alumno.dni == dni).first()
     if buscado:
-        buscado.idMesa=alumno.idMesa
+        buscado.idMesa=idMesa
         db.commit()
         db.refresh(buscado)
-        return buscado
-    else:
-        return HTTPException(status_code=404, detail="alumno no encontrado")            #agregar alumno a mesa
+        return buscado                                                          #agregar alumno a mesa
+                                                                                   
 
 
 def modificar_alumno(db:Session,dni:int,alumno:AlumnoData):
@@ -84,9 +89,8 @@ def modificar_alumno(db:Session,dni:int,alumno:AlumnoData):
         buscado.nombre=alumno.nombre
         db.commit()
         db.refresh(buscado)
-        return buscado
-    else:
-        return "Alumno no encontrada"        #modificar alumno
+        return buscado                           #modificar alumno
+          
 
 
 def eliminar_alumno(db:Session,dni:int):
@@ -94,6 +98,8 @@ def eliminar_alumno(db:Session,dni:int):
     if buscado:
         db.delete(buscado)
         db.commit()
-        return "Alumno eliminada correctamente"
-    else:
-        return "Alumno no encontrada"           #eliminar alumno
+        return None         #eliminar alumno
+    
+    
+def get_alumnos_mesas(db:Session,idMesa:int):
+    return db.query(Alumno).filter(Alumno.idMesa==idMesa).all()                 #alumnos inscriptos en mesa

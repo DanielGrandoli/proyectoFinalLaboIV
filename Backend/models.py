@@ -17,8 +17,8 @@ class Mesa(Base):
     
 class Alumno(Base):
     __tablename__='alumno'
+    dni=Column(Integer,primary_key=True,unique=True)
     nombre=Column(String(30))
     apellido=Column(String(30))
-    dni=Column(Integer,primary_key=True,unique=True)
-    idMesa=Column(Integer, ForeignKey(Mesa.idMesa))
+    idMesa=Column(Integer, ForeignKey(Mesa.idMesa),nullable=True)
 
