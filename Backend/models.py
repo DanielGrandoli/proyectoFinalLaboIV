@@ -1,9 +1,6 @@
 #modelo de las tablas de la base de datos
-
 from sqlalchemy import Column,String,Integer,ForeignKey,Date,Numeric,Date
 from sqlalchemy.orm import relationship
-
-
 from database import Base
 
 class Mesa(Base):

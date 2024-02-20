@@ -53,8 +53,9 @@ def eliminar_mesa(db:Session,idMesa:int):
         if not buscado.alumno.all():
             db.delete(buscado)
             db.commit()
-    return None
-  
+            return buscado
+        else: return False
+    else: return False
 
 
 

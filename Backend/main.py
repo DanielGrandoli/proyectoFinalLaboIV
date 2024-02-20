@@ -6,6 +6,7 @@ import crud
 from database import engine,localSession
 from schemas import MesaData,MesaID,AlumnoData
 from models import Base
+from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,6 +20,18 @@ def get_db():
 
 app=FastAPI()  
 
+origin=[
+    'http://localhost:5173'
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origin,
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+
 @app.get('/')
 def root():
     return 'Hola desde fastAPI'
@@ -31,7 +44,7 @@ def root():
 
 #Mesa
 
-@app.get('/api/mesas' ,response_model=list[MesaData])
+@app.get('/api/mesas' ,response_model=list[MesaID])
 def get_mesas(db:Session= Depends(get_db)):    
         mesas= crud.get_mesas(db=db)                                # ejecuta el metodo que retorna una lista de mesas  
         if mesas:
@@ -49,7 +62,7 @@ def modificar_mesa(mesa:MesaData,idMesa:int,db: Session= Depends(get_db)):
         return modificarMesa
     raise HTTPException(status_code=404,detail='Mesa no encontrado') 
     
-@app.delete('/api/eliminarMesa/{idMesa=int}',response_model=MesaData)
+@app.delete('/api/eliminarMesa/{idMesa=int}',response_model=MesaID)
 def borrar_mesa(idMesa:int,db:Session=Depends(get_db)):
     eliminarMesa = crud.eliminar_mesa(db=db,idMesa=idMesa)                          #  #ejecuta el metodo para eliminar mesa
     if eliminarMesa:
