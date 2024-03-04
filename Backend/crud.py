@@ -1,29 +1,13 @@
 #funciones para crear acciones dentro de la base de datos
 
 from sqlalchemy.orm import Session
-from models import Mesa,Alumno
-from schemas import MesaData,AlumnoData,MesaID
+from models import Mesa,Alumno,InscriptosMesa
+from schemas import MesaData,AlumnoData,MesaID,IncriptosMesaData
 
-"""
-def get_users(db: Session):
-    return db.query(User).all()
-
-
-
-def get_user_name(db: Session, name:str):
-    return db.query(User).filter(User.name==name).first()
-
-def create_user(db: Session, familiar:UserData):
-    fake_password=familiar.password+'#Fake'
-    new_user=User(name=familiar.name,password=fake_password)
-    db.add(new_user)
-    db.commit()
-    db.flush(new_user)
-    return new_user
- 
-    """
     
 #Mesas
+
+
     
 def get_mesas(db: Session):
     return db.query(Mesa).all()    #lista de mesas
@@ -31,10 +15,11 @@ def get_mesas(db: Session):
     
 def crear_mesa(db:Session,mesa:MesaData):
     nueva_mesa=Mesa(nombre=mesa.nombre,fecha=mesa.fecha)
-    db.add(nueva_mesa)
-    db.commit()
-    db.flush(nueva_mesa)
-    return nueva_mesa                       #Alta exameno
+    if nueva_mesa:
+        db.add(nueva_mesa)
+        db.commit()
+        db.flush(nueva_mesa)
+    return nueva_mesa                       
 
 def modificar_mesa(db:Session,idMesa:int,mesa:MesaData):
     buscado=db.query(Mesa).filter(Mesa.idMesa==idMesa).first()
@@ -50,7 +35,7 @@ def modificar_mesa(db:Session,idMesa:int,mesa:MesaData):
 def eliminar_mesa(db:Session,idMesa:int):
     buscado=db.query(Mesa).filter(Mesa.idMesa==idMesa).first()
     if buscado:
-        if not buscado.alumno.all():
+        if not buscado.inscriptosMesa.all():
             db.delete(buscado)
             db.commit()
             return buscado
@@ -65,22 +50,35 @@ def get_alumnos(db:Session):
     return db.query(Alumno).all()   #lista de alumnos
 
 def crear_alumno(db:Session,alumno:AlumnoData):
-    nuevo_alumno=Alumno(nombre=alumno.nombre,apellido=alumno.apellido,dni=alumno.dni,idMesa=None)
-    db.add(nuevo_alumno)
-    db.commit()
-    db.flush(nuevo_alumno)
+    nuevo_alumno=Alumno(nombre=alumno.nombre,apellido=alumno.apellido,dni=alumno.dni)
+    if nuevo_alumno:
+        db.add(nuevo_alumno)
+        db.commit()
+        db.flush(nuevo_alumno)
     return nuevo_alumno                        #Alta alumno
 
-def agregarAlumnoMesa(db:Session,dni:int,idMesa:int):
-    buscado = db.query(Alumno).filter(Alumno.dni == dni).first()
-    if buscado:
-        buscado.idMesa=idMesa
+def agregarAlumnoMesa(db:Session,nombre:str,dni:int):
+    aluBuscado = db.query(Alumno).filter(Alumno.dni == dni).first()
+    mesaBuscada=db.query(Mesa).filter(Mesa.nombre.ilike(nombre)).first()
+    if aluBuscado and mesaBuscada:
+        idMesa=mesaBuscada.idMesa
+        nuevo_inscripto=InscriptosMesa(dni=dni,idMesa=idMesa)
+        db.add(nuevo_inscripto)
         db.commit()
-        db.refresh(buscado)
-        return buscado                                                          #agregar alumno a mesa
-                                                                                   
+        db.refresh(nuevo_inscripto)
+        return nuevo_inscripto                                                          #agregar alumno a mesa
+    else: return False 
+    
+def eliminarAlumnoMesa(db:Session,idMesa:int,dni:int):
+    inscriptoBuscado = db.query(InscriptosMesa).filter((InscriptosMesa.idMesa == idMesa) & (InscriptosMesa.dni == dni)).first()                                                         
+    if inscriptoBuscado:
+        db.delete(inscriptoBuscado)
+        db.commit()
+        return inscriptoBuscado
+    else: return False
+ 
 
-
+    
 def modificar_alumno(db:Session,dni:int,alumno:AlumnoData):
     buscado=db.query(Alumno).filter(Alumno.dni==dni).first()
     
@@ -101,6 +99,9 @@ def eliminar_alumno(db:Session,dni:int):
         db.commit()
         return None         #eliminar alumno
     
-    
-def get_alumnos_mesas(db:Session,idMesa:int):
-    return db.query(Alumno).filter(Alumno.idMesa==idMesa).all()                 #alumnos inscriptos en mesa
+
+def get_alumnos_inscriptos_porMesa(db:Session,idMesa:int):
+   return db.query(Alumno).join(InscriptosMesa, Alumno.dni == InscriptosMesa.dni).filter(InscriptosMesa.idMesa == idMesa).all()
+
+def get_alumnos_NO_inscriptos_porMesa(db:Session,idMesa:int):
+    return db.query(Alumno).outerjoin(InscriptosMesa,(Alumno.dni == InscriptosMesa.dni) & (InscriptosMesa.idMesa == idMesa)).filter(InscriptosMesa.idMesa.is_(None) | (InscriptosMesa.idMesa != idMesa)).all()

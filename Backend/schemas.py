@@ -12,11 +12,12 @@ class AlumnoData(BaseModel):
     nombre:str
     apellido:str
     dni:int
-    idMesa:Optional [int] = None
 
 class MesaID(MesaData):
     idMesa:int
     
+
+class IncriptosMesaData(BaseModel):
+    id:int
     
-#class AlumnoID(AlumnoData):
- #   id:int    
+        

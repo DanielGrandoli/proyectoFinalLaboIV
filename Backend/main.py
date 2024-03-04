@@ -4,12 +4,11 @@ from fastapi import FastAPI,Depends,HTTPException
 from sqlalchemy.orm import Session
 import crud
 from database import engine,localSession
-from schemas import MesaData,MesaID,AlumnoData
+from schemas import MesaData,MesaID,AlumnoData,IncriptosMesaData
 from models import Base
 from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
-
 
 def get_db():
     db = localSession()
@@ -20,17 +19,21 @@ def get_db():
 
 app=FastAPI()  
 
-origin=[
-    'http://localhost:5173'
+origins=[
+    'http://localhost:5173',
+    
+    
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origin,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*']
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
+
+
 
 @app.get('/')
 def root():
@@ -53,7 +56,10 @@ def get_mesas(db:Session= Depends(get_db)):
 
 @app.post('/api/mesa',response_model=MesaData)
 def crear_mesa(mesa:MesaData,db: Session= Depends(get_db)):
-    return crud.crear_mesa(db=db,mesa=mesa)                                #ejecuta el metodo para crear una mesa
+    mesas= crud.crear_mesa(db=db,mesa=mesa)
+    if mesas:
+        return mesas 
+    raise HTTPException(status_code=404,detail='Mesa no creada datos incorrectos')                                #ejecuta el metodo para crear una mesa
 
 @app.put('/api/mesa/{idMesa=int}', response_model=MesaData)
 def modificar_mesa(mesa:MesaData,idMesa:int,db: Session= Depends(get_db)):
@@ -84,7 +90,10 @@ def get_alumnos(db:Session=Depends(get_db)):
 
 @app.post('/api/alumno',response_model=AlumnoData)
 def crear_alumno(alumno:AlumnoData,db: Session= Depends(get_db)):
-    return crud.crear_alumno(db=db,alumno=alumno)                                #ejecuta el metodo para crear un alumno
+    alumnos = crud.crear_alumno(db=db,alumno=alumno)
+    if alumnos:    
+        return alumnos                                #ejecuta el metodo para crear un alumno
+    raise HTTPException(status_code=404,detail='Alumno ya existente')
 
 
 @app.put('/api/alumno/{dni=int}', response_model=AlumnoData)
@@ -102,17 +111,31 @@ def borrar_alumno(dni:int,db:Session=Depends(get_db)):
     raise HTTPException(status_code=404,detail='Alumno no encontrado') 
   
 
-@app.put('/api/alumno/{idMesa=int}', response_model=AlumnoData)
-def agregarAlumnoMesa(idMesa:int,dni:int,db: Session= Depends(get_db)):
-    agregarAlumno=crud.agregarAlumnoMesa(db=db,dni=dni,idMesa=idMesa)              #ejecuta metodo para agregar alumno a mesa
+@app.put('/api/alumno/{idMesa=int,dni=int}', response_model=IncriptosMesaData)
+def agregarAlumnoMesa(nombre:str,dni:int,db: Session= Depends(get_db)):
+    agregarAlumno=crud.agregarAlumnoMesa(db=db,dni=dni,nombre=nombre)              #ejecuta metodo para agregar alumno a mesa
     if agregarAlumno:
         return agregarAlumno
-    raise HTTPException(status_code=404,detail='Alumno no encontrado')    
+    raise HTTPException(status_code=404,detail='Alumno o mesa no encontrada')    
 
 
-@app.get('/api/alumnosEnMesa/{idMesa=int}',response_model=list[AlumnoData])
-def get_alumnos_mesa(idMesa:int,db:Session=Depends(get_db)):
-    alumnosEnMesa= crud.get_alumnos_mesas(db=db,idMesa=idMesa)
-    if alumnosEnMesa:
+@app.get('/api/alumnosInscriptosPorMesa/{idMesa=int}',response_model=list[AlumnoData])
+def get_alumnos_inscriptos_porMesa(idMesa:int,db:Session=Depends(get_db)):
+     alumnosEnMesa= crud.get_alumnos_inscriptos_porMesa(db=db,idMesa=idMesa)
+     if alumnosEnMesa:
         return alumnosEnMesa
-    raise HTTPException(status_code=404,detail='no hay alumnos en la mesa')
+     raise HTTPException(status_code=404,detail='no hay alumnos en la mesa')
+ 
+@app.get('/api/alumnosNOinscriptosPorMesa/{idMesa=int}',response_model=list[AlumnoData])
+def get_alumnos_NO_inscriptos_porMesa(idMesa:int,db:Session=Depends(get_db)):
+     alumnosNoinscrptos= crud.get_alumnos_NO_inscriptos_porMesa(db=db,idMesa=idMesa)
+     if alumnosNoinscrptos:
+         return alumnosNoinscrptos
+     raise HTTPException(status_code=404,detail='no hay alumnos en la mesa')
+
+@app.delete('/api/eliminarAlumnosEnMesa/{idMesa=int,dni=int}',response_model=IncriptosMesaData)
+def eliminarAlumnosEnMesa(idMesa:int,dni:int,db:Session=Depends(get_db)):
+    eliminarAlumnoMesa=crud.eliminarAlumnoMesa(db=db,idMesa=idMesa,dni=dni)
+    if eliminarAlumnoMesa:
+        return eliminarAlumnoMesa
+    raise HTTPException(status_code=404,detail='alumno no encontrado')
